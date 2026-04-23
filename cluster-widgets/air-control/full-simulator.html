@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GWM H6 GT - Full Panel Simulator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, sans-serif;
+      color: #e5e7eb;
+    }
+
+    /* Main panel - full instrument cluster */
+    .main-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      border-right: 1px solid #1f2937;
+    }
+
+    .instrument-panel {
+      flex: 1;
+      background: #000;
+      border-bottom: 1px solid #1f2937;
+      overflow: hidden;
+    }
+
+    .instrument-panel iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #000;
+    }
+
+    /* Controls sidebar */
+    .controls-sidebar {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+
+    .controls-section {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .controls-section:last-child {
+      border-bottom: none;
+    }
+
+    .controls-section h3 {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #6b7280;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .control-label {
+      color: #9ca3af;
+      min-width: 100px;
+    }
+
+    .control-input {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: #1f2937;
+      color: #e5e7eb;
+      font-size: 11px;
+    }
+
+    .control-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      background: #2a2f37;
+    }
+
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .slider-wrapper input {
+      flex: 1;
+      accent-color: #3b82f6;
+    }
+
+    .slider-value {
+      color: #60a5fa;
+      min-width: 40px;
+      text-align: right;
+      font-size: 11px;
+    }
+
+    .theme-selector {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .theme-btn {
+      padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid #374151;
+      background: #1f2937;
+      color: #e5e7eb;
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .theme-btn.active {
+      background: #3b82f6;
+      border-color: #60a5fa;
+      color: #fff;
+    }
+
+    .theme-btn:hover:not(.active) {
+      background: #374151;
+    }
+
+    .log-container {
+      max-height: 100%;
+      overflow-y: auto;
+      padding: 8px;
+      background: #111;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 10px;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 8px;
+      padding: 2px 0;
+      border-bottom: 1px solid #0d0d0d;
+      color: #9ca3af;
+    }
+
+    .log-entry .log-time {
+      color: #6b7280;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+
+    .log-entry .log-msg {
+      color: #a3e635;
+      flex: 1;
+    }
+
+    .control-panel::-webkit-scrollbar { width: 5px; }
+    .control-panel::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    .log-container::-webkit-scrollbar { width: 5px; }
+    .log-container::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    .controls-section::-webkit-scrollbar { width: 5px; }
+    .controls-section::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <div class="main-panel">
+    <div class="instrument-panel">
+      <iframe id="app-frame" src="app-full.html"></iframe>
+    </div>
+  </div>
+
+  <div class="controls-sidebar">
+    <div class="controls-section" id="display-panel">
+      <h3>🎨 Tema & Display</h3>
+      <div id="theme-controls"></div>
+    </div>
+
+    <div class="controls-section" id="vehicle-panel">
+      <h3>🎮 Botões do Volante</h3>
+      <div id="vehicle-controls"></div>
+    </div>
+
+    <div class="controls-section" id="log-panel">
+      <h3>📊 Log de Eventos</h3>
+      <div class="log-container" id="log-container"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { setState, getState, subscribe } from './src/state.js';
+
+    const logEntries = [];
+
+    function log(msg) {
+      const ts = new Date().toLocaleTimeString('pt-BR', { hour12: false })
+        + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+      logEntries.unshift({ ts, msg });
+      if (logEntries.length > 50) logEntries.length = 50;
+      renderLog();
+    }
+
+    function renderLog() {
+      const logContainer = document.getElementById('log-container');
+      if (!logContainer) return;
+      logContainer.innerHTML = logEntries
+        .map(e => `<div class="log-entry"><span class="log-time">${e.ts}</span><span class="log-msg">${e.msg}</span></div>`)
+        .join('');
+      logContainer.scrollTop = 0;
+    }
+
+    function el(tag, attrs = {}, ...children) {
+      const n = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === 'class') n.className = v;
+        else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+        else n.setAttribute(k, v);
+      }
+      children.forEach(c => n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+      return n;
+    }
+
+    // Build steering wheel buttons
+    function buildWheelControls() {
+      const container = document.getElementById('vehicle-controls');
+      if (!container) return;
+
+      // Volume controls
+      const volumeRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'flex: 1; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('🔊 Vol -'); dispatchToFrame('vol-down'); } }, '🔊 Vol -'),
+        el('button', { class: 'control-input', style: 'flex: 1; margin-left: 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('🔊 Vol +'); dispatchToFrame('vol-up'); } }, '🔊 Vol +')
+      );
+      container.appendChild(volumeRow);
+
+      // Navigation controls
+      const navRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('☝️ Up'); dispatchToFrame('nav-up'); } }, '☝️'),
+        el('button', { class: 'control-input', style: 'margin: 0 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('👈 Left'); dispatchToFrame('nav-left'); } }, '👈'),
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('✓ OK'); dispatchToFrame('nav-ok'); } }, '✓'),
+        el('button', { class: 'control-input', style: 'margin: 0 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('👉 Right'); dispatchToFrame('nav-right'); } }, '👉'),
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('👇 Down'); dispatchToFrame('nav-down'); } }, '👇')
+      );
+      container.appendChild(navRow);
+
+      // Menu buttons
+      const menuRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'flex: 1; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('☰ Menu'); dispatchToFrame('menu'); } }, '☰ Menu'),
+        el('button', { class: 'control-input', style: 'flex: 1; margin-left: 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+          onclick: () => { log('⏮ Back'); dispatchToFrame('back'); } }, '⏮ Back')
+      );
+      container.appendChild(menuRow);
+
+      // Keyboard info
+      container.appendChild(el('div', { style: 'margin-top: 12px; padding-top: 12px; border-top: 1px solid #374151; font-size: 10px; color: #6b7280;' },
+        el('strong', {}, '⌨️ Keyboard:'),
+        el('div', {}, 'Arrow Keys = Navigate'),
+        el('div', {}, 'Enter = OK'),
+        el('div', {}, 'Backspace = Back')
+      ));
+    }
+
+    function dispatchToFrame(action) {
+      const frame = document.getElementById('app-frame');
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.postMessage({
+          type: 'wheel-button',
+          action: action
+        }, '*');
+      }
+    }
+
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+      if (document.activeElement.tagName === 'INPUT') return;
+
+      const actions = {
+        'ArrowUp': 'nav-up',
+        'ArrowDown': 'nav-down',
+        'ArrowLeft': 'nav-left',
+        'ArrowRight': 'nav-right',
+        'Enter': 'nav-ok',
+        'Backspace': 'back',
+        '+': 'vol-up',
+        '-': 'vol-down',
+        'm': 'menu',
+      };
+
+      const action = actions[e.key];
+      if (action) {
+        e.preventDefault();
+        dispatchToFrame(action);
+        log(`⌨️ ${e.key} → ${action}`);
+      }
+    });
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        buildWheelControls();
+        log('🚀 Simulador de Painel Completo iniciado');
+      }, 100);
+    });
+  </script>
+</body>
+</html>
