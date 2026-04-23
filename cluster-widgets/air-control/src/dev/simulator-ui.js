@@ -37,6 +37,32 @@ function buildThemePanel() {
     const container = document.getElementById('theme-controls');
     if (!container) return;
 
+    // Screen selector (Menu, AC, Regen, Graphs)
+    const screens = [
+        { id: 'main_menu', label: '📱 Menu Principal' },
+        { id: 'aircon', label: '❄️ Ar Condicionado' },
+        { id: 'regen', label: '⚡ Regeneração' },
+        { id: 'graph', label: '📊 Gráficos' }
+    ];
+
+    const screenBtns = screens.map(({ id, label }) => {
+        const btn = el('button', {
+            class: 'theme-btn' + (getState('screen') === id ? ' active' : ''),
+            onclick: () => {
+                setState('screen', id);
+                container.querySelectorAll('.screen-selector .theme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                log('📺 Painel: ' + label);
+            }
+        }, label);
+        return btn;
+    });
+    const screenRow = el('div', { class: 'control-row' },
+        el('span', { class: 'control-label' }, 'Painel'),
+        el('div', { class: 'theme-selector screen-selector' }, ...screenBtns)
+    );
+    container.appendChild(screenRow);
+
     // Display mode
     const displaySel = el('select', { class: 'control-input', onchange: (e) => {
         setState('display', e.target.value);
