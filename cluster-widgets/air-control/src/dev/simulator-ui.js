@@ -122,6 +122,7 @@ function buildVehiclePanel() {
     if (!container) return;
 
     const controls = [
+        { label: 'Ângulo do Volante (°)', key: 'wheelAngle', min: -180, max: 180, step: 5 },
         { label: 'Velocidade (km/h)', key: 'carSpeed', min: 0, max: 200, step: 1 },
         { label: 'RPM Motor', key: 'engineRPM', min: 0, max: 8000, step: 100 },
         { label: 'Temp. Interna (°C)', key: 'tempInside', min: -10, max: 60, step: 1 },
@@ -149,6 +150,25 @@ function buildVehiclePanel() {
         );
         container.appendChild(row);
     });
+
+    // Steering mode selector
+    const steerModes = ['Normal', 'Esportiva', 'Conforto'];
+    const steerBtns = steerModes.map(m => {
+        const btn = el('button', { class: 'theme-btn' + (getState('steerMode') === m ? ' active' : ''),
+            onclick: () => {
+                setState('steerMode', m);
+                container.querySelectorAll('.steer-selector .theme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                log('🎯 Modo de Direção: ' + m);
+            }
+        }, m);
+        return btn;
+    });
+    const steerRow = el('div', { class: 'control-row' },
+        el('span', { class: 'control-label' }, 'Direção'),
+        el('div', { class: 'theme-selector steer-selector' }, ...steerBtns)
+    );
+    container.appendChild(steerRow);
 
     // Gear selector
     const gearBtns = ['P', 'R', 'N', 'D'].map(g => {
