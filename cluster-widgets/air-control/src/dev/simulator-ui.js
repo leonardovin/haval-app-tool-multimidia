@@ -122,7 +122,6 @@ function buildVehiclePanel() {
     if (!container) return;
 
     const controls = [
-        { label: 'Ângulo do Volante (°)', key: 'wheelAngle', min: -180, max: 180, step: 5 },
         { label: 'Velocidade (km/h)', key: 'carSpeed', min: 0, max: 200, step: 1 },
         { label: 'RPM Motor', key: 'engineRPM', min: 0, max: 8000, step: 100 },
         { label: 'Temp. Interna (°C)', key: 'tempInside', min: -10, max: 60, step: 1 },
@@ -169,6 +168,42 @@ function buildVehiclePanel() {
         el('div', { class: 'theme-selector steer-selector' }, ...steerBtns)
     );
     container.appendChild(steerRow);
+
+    // Steering wheel buttons
+    container.appendChild(el('h3', { style: 'margin-top: 16px; margin-bottom: 8px; font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #1f2937; padding-bottom: 8px;' }, '🎮 Botões do Volante'));
+
+    // Volume controls
+    const volumeRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'flex: 1; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('🔊 Vol -'); window.dispatchEvent(new CustomEvent('wheel-vol-down')); } }, '🔊 Vol -'),
+        el('button', { class: 'control-input', style: 'flex: 1; margin-left: 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('🔊 Vol +'); window.dispatchEvent(new CustomEvent('wheel-vol-up')); } }, '🔊 Vol +')
+    );
+    container.appendChild(volumeRow);
+
+    // Navigation controls
+    const navRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('☝️ Cima'); window.dispatchEvent(new CustomEvent('wheel-up')); } }, '☝️'),
+        el('button', { class: 'control-input', style: 'margin: 0 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('👈 Esquerda'); window.dispatchEvent(new CustomEvent('wheel-left')); } }, '👈'),
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('✓ OK'); window.dispatchEvent(new CustomEvent('wheel-ok')); } }, '✓'),
+        el('button', { class: 'control-input', style: 'margin: 0 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('👉 Direita'); window.dispatchEvent(new CustomEvent('wheel-right')); } }, '👉'),
+        el('button', { class: 'control-input', style: 'cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('👇 Baixo'); window.dispatchEvent(new CustomEvent('wheel-down')); } }, '👇')
+    );
+    container.appendChild(navRow);
+
+    // Menu buttons
+    const menuRow = el('div', { class: 'control-row' },
+        el('button', { class: 'control-input', style: 'flex: 1; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('☰ Menu'); window.dispatchEvent(new CustomEvent('wheel-menu')); } }, '☰ Menu'),
+        el('button', { class: 'control-input', style: 'flex: 1; margin-left: 4px; cursor: pointer; background: #1d4ed8; border-color: #3b82f6; color: #fff;',
+            onclick: () => { log('⏮ Voltar'); window.dispatchEvent(new CustomEvent('wheel-back')); } }, '⏮ Voltar')
+    );
+    container.appendChild(menuRow);
 
     // Gear selector
     const gearBtns = ['P', 'R', 'N', 'D'].map(g => {
